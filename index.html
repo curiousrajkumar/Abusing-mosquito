@@ -1,0 +1,1661 @@
+<!DOCTYPE html>
+<html lang="hi">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>Macchar Hunter - Bedroom Laser Defense</title>
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      -webkit-tap-highlight-color: transparent;
+      user-select: none;
+      -webkit-user-select: none;
+    }
+
+    html, body {
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      background: #0b1021;
+      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+      color: #ffffff;
+      touch-action: none;
+    }
+
+    #gameWrapper {
+      position: relative;
+      width: 100%;
+      height: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    canvas {
+      display: block;
+      width: 100%;
+      height: 100%;
+      cursor: crosshair;
+      touch-action: none;
+    }
+
+    /* Top-Left Menu Toggle */
+    #menuToggle {
+      position: fixed;
+      top: 12px;
+      left: 12px;
+      z-index: 50;
+      height: 36px;
+      padding: 0 12px;
+      border-radius: 999px;
+      border: 1px solid rgba(56, 189, 248, 0.55);
+      background: rgba(15, 23, 42, 0.9);
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
+      color: #38bdf8;
+      font-size: 14px;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      cursor: pointer;
+      box-shadow: 0 4px 14px rgba(0, 0, 0, 0.4);
+      transition: transform 0.12s ease, background 0.2s ease;
+    }
+
+    #menuToggle:active {
+      transform: scale(0.93);
+    }
+
+    /* View Menu Drawer (Top-Left) */
+    #viewMenu {
+      position: fixed;
+      top: 56px;
+      left: 12px;
+      width: min(300px, calc(100vw - 24px));
+      background: linear-gradient(165deg, rgba(30, 41, 59, 0.98), rgba(15, 23, 42, 0.99));
+      border: 1px solid rgba(56, 189, 248, 0.35);
+      border-radius: 16px;
+      padding: 16px;
+      z-index: 49;
+      box-shadow: 0 18px 45px rgba(0, 0, 0, 0.55);
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    #viewMenu.hidden {
+      display: none;
+    }
+
+    .menu-profile-header {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding-bottom: 10px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+    }
+
+    .menu-avatar {
+      width: 42px;
+      height: 42px;
+      border-radius: 12px;
+      background: rgba(56, 189, 248, 0.18);
+      border: 1px solid rgba(56, 189, 248, 0.45);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 22px;
+      flex-shrink: 0;
+    }
+
+    .menu-user-info {
+      flex: 1;
+      min-width: 0;
+    }
+
+    .menu-user-name {
+      font-size: 16px;
+      font-weight: 700;
+      color: #f8fafc;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .menu-user-sub {
+      font-size: 12px;
+      color: #94a3b8;
+    }
+
+    .menu-stats-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 6px;
+      text-align: center;
+    }
+
+    .menu-stat {
+      background: rgba(15, 23, 42, 0.7);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 10px;
+      padding: 8px 4px;
+    }
+
+    .menu-stat strong {
+      display: block;
+      font-size: 15px;
+      color: #38bdf8;
+    }
+
+    .menu-stat span {
+      font-size: 10px;
+      color: #94a3b8;
+    }
+
+    .menu-form {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      background: rgba(15, 23, 42, 0.6);
+      padding: 10px;
+      border-radius: 12px;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    .menu-form.hidden {
+      display: none;
+    }
+
+    .menu-input {
+      width: 100%;
+      padding: 8px 10px;
+      border-radius: 8px;
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      background: rgba(30, 41, 59, 0.9);
+      color: #f8fafc;
+      font-size: 14px;
+      outline: none;
+      user-select: text;
+      -webkit-user-select: text;
+    }
+
+    .menu-input:focus {
+      border-color: #38bdf8;
+    }
+
+    .avatar-picker {
+      display: flex;
+      gap: 6px;
+      justify-content: space-between;
+    }
+
+    .avatar-opt {
+      flex: 1;
+      padding: 6px 0;
+      border-radius: 8px;
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      background: rgba(30, 41, 59, 0.7);
+      font-size: 18px;
+      cursor: pointer;
+    }
+
+    .avatar-opt.selected {
+      border-color: #38bdf8;
+      background: rgba(56, 189, 248, 0.22);
+    }
+
+    .menu-btn {
+      width: 100%;
+      padding: 9px 12px;
+      border-radius: 10px;
+      border: 1px solid rgba(255, 255, 255, 0.16);
+      background: rgba(51, 65, 85, 0.75);
+      color: #f8fafc;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      text-align: center;
+      transition: background 0.15s ease, transform 0.1s ease;
+    }
+
+    .menu-btn:active {
+      transform: scale(0.97);
+    }
+
+    .menu-btn.accent {
+      background: linear-gradient(135deg, #38bdf8, #4ade80);
+      color: #0f172a;
+      border: none;
+      font-weight: 700;
+    }
+
+    .menu-footer {
+      padding-top: 8px;
+      border-top: 1px solid rgba(255, 255, 255, 0.12);
+      text-align: center;
+      font-size: 12px;
+      color: #94a3b8;
+    }
+
+    .menu-footer strong {
+      color: #fde047;
+    }
+
+    /* Top HUD */
+    #hud {
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      padding: 12px 14px 12px 104px;
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      pointer-events: none;
+      z-index: 10;
+      transition: opacity 0.2s ease;
+    }
+
+    #hud.hidden {
+      display: none;
+    }
+
+    .hud-group {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .pill {
+      background: rgba(15, 23, 42, 0.72);
+      backdrop-filter: blur(6px);
+      -webkit-backdrop-filter: blur(6px);
+      border: 1px solid rgba(255, 255, 255, 0.18);
+      border-radius: 999px;
+      padding: 6px 12px;
+      font-size: 14px;
+      font-weight: 600;
+      color: #f8fafc;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
+      white-space: nowrap;
+    }
+
+    .pill.danger {
+      border-color: rgba(248, 113, 113, 0.75);
+      background: rgba(127, 29, 29, 0.8);
+      color: #fecaca;
+      animation: pulseDanger 0.7s infinite alternate;
+    }
+
+    @keyframes pulseDanger {
+      from { transform: scale(1); }
+      to { transform: scale(1.05); }
+    }
+
+    #themeToggle {
+      pointer-events: auto;
+      cursor: pointer;
+      background: rgba(30, 41, 59, 0.85);
+      color: #fde047;
+      border: 1px solid rgba(253, 224, 71, 0.45);
+      border-radius: 999px;
+      padding: 6px 14px;
+      font-size: 13px;
+      font-weight: 700;
+      transition: transform 0.12s ease, background 0.2s ease;
+    }
+
+    #themeToggle:active {
+      transform: scale(0.95);
+    }
+
+    /* Overlay Screens (Start & Game Over) */
+    .overlay {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+      background: rgba(8, 12, 26, 0.76);
+      backdrop-filter: blur(6px);
+      -webkit-backdrop-filter: blur(6px);
+      z-index: 20;
+    }
+
+    .overlay.hidden {
+      display: none;
+    }
+
+    .card {
+      width: 100%;
+      max-width: 400px;
+      background: linear-gradient(160deg, rgba(30, 41, 59, 0.96), rgba(15, 23, 42, 0.98));
+      border: 1px solid rgba(255, 255, 255, 0.16);
+      border-radius: 20px;
+      padding: 26px 22px;
+      text-align: center;
+      box-shadow: 0 20px 50px rgba(0, 0, 0, 0.55);
+    }
+
+    .card h1 {
+      font-size: 28px;
+      margin-bottom: 8px;
+      color: #38bdf8;
+      letter-spacing: 0.3px;
+    }
+
+    .card .subtitle {
+      font-size: 14px;
+      line-height: 1.5;
+      color: #cbd5e1;
+      margin-bottom: 18px;
+    }
+
+    .stats-box {
+      background: rgba(15, 23, 42, 0.7);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 12px;
+      padding: 12px;
+      margin-bottom: 18px;
+      font-size: 15px;
+      line-height: 1.7;
+      color: #e2e8f0;
+    }
+
+    .btn-primary {
+      width: 100%;
+      padding: 14px 20px;
+      font-size: 17px;
+      font-weight: 700;
+      border: none;
+      border-radius: 12px;
+      cursor: pointer;
+      color: #0f172a;
+      background: linear-gradient(135deg, #38bdf8, #4ade80);
+      box-shadow: 0 8px 20px rgba(56, 189, 248, 0.35);
+      transition: transform 0.12s ease, filter 0.15s ease;
+    }
+
+    .btn-primary:active {
+      transform: scale(0.97);
+    }
+
+    .btn-primary:hover {
+      filter: brightness(1.06);
+    }
+
+    .hint {
+      margin-top: 12px;
+      font-size: 12px;
+      color: #94a3b8;
+    }
+
+    @media (max-width: 520px) {
+      .pill {
+        font-size: 12px;
+        padding: 5px 10px;
+      }
+      #themeToggle {
+        font-size: 12px;
+        padding: 5px 11px;
+      }
+      .card h1 {
+        font-size: 24px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div id="gameWrapper">
+    <canvas id="gameCanvas"></canvas>
+
+    <!-- Top-Left Menu Toggle -->
+    <button id="menuToggle" type="button" aria-label="Menu">☰ Menu</button>
+
+    <!-- View Menu Drawer -->
+    <div id="viewMenu" class="hidden">
+      <div class="menu-profile-header">
+        <div class="menu-avatar" id="menuAvatar">😎</div>
+        <div class="menu-user-info">
+          <div class="menu-user-name" id="menuUserName">Guest Player</div>
+          <div class="menu-user-sub" id="menuUserSub">Profile localStorage mein save hai</div>
+        </div>
+      </div>
+
+      <div class="menu-stats-grid">
+        <div class="menu-stat">
+          <strong id="menuBestScore">0</strong>
+          <span>Best</span>
+        </div>
+        <div class="menu-stat">
+          <strong id="menuGamesPlayed">0</strong>
+          <span>Games</span>
+        </div>
+        <div class="menu-stat">
+          <strong id="menuTotalKills">0</strong>
+          <span>Total Kills</span>
+        </div>
+      </div>
+
+      <button class="menu-btn" id="editProfileBtn" type="button">✏️ Profile Banayein / Badlein</button>
+
+      <div class="menu-form hidden" id="profileForm">
+        <input class="menu-input" id="profileNameInput" type="text" maxlength="20" placeholder="Apna naam likhein..." />
+        <div class="avatar-picker" id="avatarPicker">
+          <button type="button" class="avatar-opt selected" data-avatar="😎">😎</button>
+          <button type="button" class="avatar-opt" data-avatar="🦟">🦟</button>
+          <button type="button" class="avatar-opt" data-avatar="🔫">🔫</button>
+          <button type="button" class="avatar-opt" data-avatar="🛏️">🛏️</button>
+          <button type="button" class="avatar-opt" data-avatar="👑">👑</button>
+        </div>
+        <button class="menu-btn accent" id="saveProfileBtn" type="button">Save Profile</button>
+      </div>
+
+      <button class="menu-btn" id="fullscreenBtn" type="button">🖥️ Full Screen (Sab Hide Karein)</button>
+
+      <div class="menu-footer">
+        Developer: <strong>Rajkumar Shah</strong>
+      </div>
+    </div>
+
+    <!-- Top HUD -->
+    <div id="hud">
+      <div class="hud-group">
+        <div class="pill" id="scorePill">Macchar maare: 0</div>
+        <div class="pill" id="bestPill">Best: 0</div>
+      </div>
+      <div class="hud-group">
+        <div class="pill" id="timerPill">60s</div>
+        <div class="pill" id="dangerPill">Paas: 0/5</div>
+        <button id="themeToggle" type="button">🌙 Raat</button>
+      </div>
+    </div>
+
+    <!-- Start Screen -->
+    <div class="overlay" id="startScreen">
+      <div class="card">
+        <h1>🦟 Macchar Hunter</h1>
+        <p class="subtitle">
+          Bed par sote hue insaan ko maccharon se bachao!<br />
+          Screen par kahin bhi tap/click karke laser ray chalao.
+        </p>
+        <div class="stats-box">
+          ⏱️ Time: <strong>60 seconds</strong><br />
+          ⚠️ Agar ek saath <strong>5 se zyada</strong> macchar paas aa gaye to Game Over!<br />
+          🏆 Best Score: <strong id="startBest">0</strong>
+        </div>
+        <button class="btn-primary" id="startBtn" type="button">Start</button>
+        <p class="hint">Sound on rakho — macchar paas aane par dialogue bajega!</p>
+      </div>
+    </div>
+
+    <!-- Game Over Screen -->
+    <div class="overlay hidden" id="gameOverScreen">
+      <div class="card">
+        <h1 id="gameOverTitle">Game Over!</h1>
+        <p class="subtitle" id="gameOverReason"></p>
+        <div class="stats-box">
+          🎯 Macchar maare: <strong id="finalScore">0</strong><br />
+          🏆 Best Score: <strong id="finalBest">0</strong>
+        </div>
+        <button class="btn-primary" id="restartBtn" type="button">Dobara khelo</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // =========================================================================
+    // TWEAKABLE GAME CONSTANTS (Aasaani se badalne ke liye upar rakhe hain)
+    // =========================================================================
+    const GAME_DURATION_SEC = 60;          // Total match time (seconds)
+    const MAX_NEAR_MOSQUITOES = 5;         // 5 se zyada (> 5) paas aaye to Game Over
+
+    const BASE_SPAWN_INTERVAL = 2.1;       // Shuruat mein har kitne sec mein naya macchar spawn ho
+    const MIN_SPAWN_INTERVAL = 0.55;       // Minimum spawn interval (high score par)
+    const SPAWN_ACCEL_PER_SCORE = 0.045;   // Har kill par spawn interval kitna kam ho
+
+    const BASE_MOSQUITO_SPEED = 75;        // Pixels/sec base speed
+    const SPEED_GAIN_PER_SCORE = 2.8;      // Har kill par speed boost
+    const MAX_MOSQUITO_SPEED = 230;        // Maximum speed cap
+
+    const PROXIMITY_RADIUS = 105;          // Insaan ke kitne paas aane par danger + dialogue trigger ho
+    const DIALOGUE_COOLDOWN_SEC = 9.0;     // amitabh.mp3 ke beech minimum cooldown (8-10 sec)
+
+    const RAY_RANGE = 420;                 // Laser ray ki maximum maarne ki doori (pixels)
+    const RAY_CONE_RAD = 0.34;             // Shot cone angle tolerance (~19.5 degrees)
+    const GUN_TURN_SPEED = 7.5;            // Gun lock-on rotation speed (rad/sec)
+    const FIRE_COOLDOWN_SEC = 0.4;         // Do shots ke beech cooldown (seconds)
+    const RAY_VISIBLE_SEC = 0.16;          // Shot ke baad ray kitni der dikhe
+
+    const STORAGE_BEST_KEY = "macchar_hunter_best_score_v1";
+    const STORAGE_PROFILE_KEY = "macchar_hunter_profile_v1";
+
+    // =========================================================================
+    // DOM & CANVAS SETUP
+    // =========================================================================
+    const canvas = document.getElementById("gameCanvas");
+    const ctx = canvas.getContext("2d");
+
+    const hud = document.getElementById("hud");
+    const menuToggle = document.getElementById("menuToggle");
+    const viewMenu = document.getElementById("viewMenu");
+    const menuAvatar = document.getElementById("menuAvatar");
+    const menuUserName = document.getElementById("menuUserName");
+    const menuUserSub = document.getElementById("menuUserSub");
+    const menuBestScore = document.getElementById("menuBestScore");
+    const menuGamesPlayed = document.getElementById("menuGamesPlayed");
+    const menuTotalKills = document.getElementById("menuTotalKills");
+    const editProfileBtn = document.getElementById("editProfileBtn");
+    const profileForm = document.getElementById("profileForm");
+    const profileNameInput = document.getElementById("profileNameInput");
+    const avatarPicker = document.getElementById("avatarPicker");
+    const saveProfileBtn = document.getElementById("saveProfileBtn");
+    const fullscreenBtn = document.getElementById("fullscreenBtn");
+
+    const scorePill = document.getElementById("scorePill");
+    const bestPill = document.getElementById("bestPill");
+    const timerPill = document.getElementById("timerPill");
+    const dangerPill = document.getElementById("dangerPill");
+    const themeToggle = document.getElementById("themeToggle");
+
+    const startScreen = document.getElementById("startScreen");
+    const gameOverScreen = document.getElementById("gameOverScreen");
+    const startBtn = document.getElementById("startBtn");
+    const restartBtn = document.getElementById("restartBtn");
+    const startBest = document.getElementById("startBest");
+    const finalScoreEl = document.getElementById("finalScore");
+    const finalBestEl = document.getElementById("finalBest");
+    const gameOverReasonEl = document.getElementById("gameOverReason");
+
+    let width = 0;
+    let height = 0;
+    let dpr = 1;
+
+    function resizeCanvas() {
+      dpr = Math.min(window.devicePixelRatio || 1, 2);
+      width = window.innerWidth;
+      height = window.innerHeight;
+      canvas.width = Math.floor(width * dpr);
+      canvas.height = Math.floor(height * dpr);
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      updateSceneAnchors();
+    }
+
+    // Scene anchor coordinates (responsive for mobile portrait & desktop)
+    const scene = {
+      bedX: 0,
+      bedY: 0,
+      bedW: 0,
+      bedH: 0,
+      sleeperX: 0,
+      sleeperY: 0,
+      gunX: 0,
+      gunY: 0,
+      winX: 0,
+      winY: 0,
+      winW: 0,
+      winH: 0,
+      proxRadius: PROXIMITY_RADIUS
+    };
+
+    function updateSceneAnchors() {
+      const isPortrait = height > width;
+      scene.bedW = Math.min(width * (isPortrait ? 0.82 : 0.56), 520);
+      scene.bedH = Math.min(height * 0.22, 160);
+      scene.bedX = (width - scene.bedW) / 2;
+      scene.bedY = height - scene.bedH - Math.max(24, height * 0.06);
+
+      // Sleeping person's head/chest center
+      scene.sleeperX = scene.bedX + scene.bedW * 0.32;
+      scene.sleeperY = scene.bedY - 10;
+
+      // Laser gun nozzle near the foot/side of the bed
+      scene.gunX = scene.bedX + scene.bedW * 0.84;
+      scene.gunY = scene.bedY - 12;
+
+      // Window position
+      scene.winW = Math.min(width * 0.28, 170);
+      scene.winH = Math.min(height * 0.24, 170);
+      scene.winX = width * (isPortrait ? 0.62 : 0.72);
+      scene.winY = Math.max(72, height * 0.13);
+
+      // Scale proximity radius slightly on very small screens
+      scene.proxRadius = Math.min(PROXIMITY_RADIUS, Math.max(75, Math.min(width, height) * 0.22));
+    }
+
+    window.addEventListener("resize", resizeCanvas);
+
+    // =========================================================================
+    // AUDIO SYSTEM (MP3s + WebAudio Laser SFX)
+    // =========================================================================
+    const buzzAudio = new Audio("editedmosquito.mp3");
+    buzzAudio.loop = true;
+    buzzAudio.volume = 0.0;
+
+    const dialogueAudio = new Audio("amitabh.mp3");
+    dialogueAudio.loop = false;
+    dialogueAudio.volume = 0.95;
+
+    let audioCtx = null;
+    let audioUnlocked = false;
+
+    function unlockAudio() {
+      if (!audioCtx) {
+        const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+        if (AudioContextClass) {
+          audioCtx = new AudioContextClass();
+        }
+      }
+      if (audioCtx && audioCtx.state === "suspended") {
+        audioCtx.resume().catch(() => {});
+      }
+      if (!audioUnlocked) {
+        audioUnlocked = true;
+        buzzAudio.play().catch(() => {});
+      }
+    }
+
+    // WebAudio se halki laser/gun shot sound effect
+    function playLaserSfx(isHit) {
+      if (!audioCtx) return;
+      try {
+        const now = audioCtx.currentTime;
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+
+        osc.type = isHit ? "sawtooth" : "triangle";
+        osc.frequency.setValueAtTime(isHit ? 780 : 520, now);
+        osc.frequency.exponentialRampToValueAtTime(isHit ? 160 : 140, now + 0.12);
+
+        gain.gain.setValueAtTime(0.14, now);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.13);
+
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        osc.start(now);
+        osc.stop(now + 0.14);
+      } catch (_) {
+        // Ignore WebAudio errors if blocked
+      }
+    }
+
+    // =========================================================================
+    // GAME STATE
+    // =========================================================================
+    let isNight = true;
+    let gameState = "start"; // "start" | "playing" | "gameover"
+    let score = 0;
+    let bestScore = parseInt(localStorage.getItem(STORAGE_BEST_KEY) || "0", 10) || 0;
+    let timeLeft = GAME_DURATION_SEC;
+
+    let spawnTimer = 0.5;
+    let fireCooldown = 0;
+    let dialogueCooldown = 0;
+
+    let gunAngle = -Math.PI * 0.75; // Initial upward-left aim toward bed
+    let lockedMosquito = null;
+    let activeRay = null; // { x1, y1, x2, y2, timer, hit }
+
+    let mosquitoes = [];
+    let fallingMosquitoes = [];
+    let particles = [];
+    let zzzList = [];
+    let zzzTimer = 0;
+    let dizzyAngle = 0;
+
+    // Background stars for night mode
+    const stars = Array.from({ length: 28 }, () => ({
+      rx: Math.random(),
+      ry: Math.random(),
+      r: 0.8 + Math.random() * 1.5,
+      twinkle: Math.random() * Math.PI * 2
+    }));
+
+    // =========================================================================
+    // USER PROFILE & VIEW MENU (localStorage + Full Screen)
+    // =========================================================================
+    function loadProfile() {
+      try {
+        const raw = localStorage.getItem(STORAGE_PROFILE_KEY);
+        if (raw) {
+          const parsed = JSON.parse(raw);
+          return {
+            name: typeof parsed.name === "string" && parsed.name.trim() ? parsed.name.trim() : "Guest Player",
+            avatar: typeof parsed.avatar === "string" ? parsed.avatar : "😎",
+            bestScore: Math.max(bestScore, Number(parsed.bestScore) || 0),
+            gamesPlayed: Number(parsed.gamesPlayed) || 0,
+            totalKills: Number(parsed.totalKills) || 0
+          };
+        }
+      } catch (_) {}
+      return {
+        name: "Guest Player",
+        avatar: "😎",
+        bestScore,
+        gamesPlayed: 0,
+        totalKills: 0
+      };
+    }
+
+    let userProfile = loadProfile();
+    bestScore = Math.max(bestScore, userProfile.bestScore);
+    let selectedAvatar = userProfile.avatar;
+    let isFullscreenClean = false;
+
+    function saveProfile() {
+      userProfile.bestScore = bestScore;
+      try {
+        localStorage.setItem(STORAGE_PROFILE_KEY, JSON.stringify(userProfile));
+        localStorage.setItem(STORAGE_BEST_KEY, String(bestScore));
+      } catch (_) {}
+      updateProfileUI();
+      updateBestUI();
+    }
+
+    function updateProfileUI() {
+      menuAvatar.textContent = userProfile.avatar;
+      menuUserName.textContent = userProfile.name;
+      menuUserSub.textContent = userProfile.name === "Guest Player"
+        ? "Apna profile banayein!"
+        : "Saved in browser localStorage";
+      menuBestScore.textContent = bestScore;
+      menuGamesPlayed.textContent = userProfile.gamesPlayed;
+      menuTotalKills.textContent = userProfile.totalKills;
+    }
+
+    function setMenuOpen(open) {
+      if (open) {
+        viewMenu.classList.remove("hidden");
+        menuToggle.textContent = "✕ Close";
+      } else {
+        viewMenu.classList.add("hidden");
+        profileForm.classList.add("hidden");
+        menuToggle.textContent = "☰ Menu";
+      }
+    }
+
+    menuToggle.addEventListener("click", (e) => {
+      e.stopPropagation();
+      const isClosed = viewMenu.classList.contains("hidden");
+      setMenuOpen(isClosed);
+    });
+
+    viewMenu.addEventListener("click", (e) => {
+      e.stopPropagation();
+    });
+
+    editProfileBtn.addEventListener("click", () => {
+      const willShow = profileForm.classList.contains("hidden");
+      profileForm.classList.toggle("hidden", !willShow);
+      if (willShow) {
+        profileNameInput.value = userProfile.name === "Guest Player" ? "" : userProfile.name;
+        selectedAvatar = userProfile.avatar;
+        avatarPicker.querySelectorAll(".avatar-opt").forEach((btn) => {
+          btn.classList.toggle("selected", btn.dataset.avatar === selectedAvatar);
+        });
+        profileNameInput.focus();
+      }
+    });
+
+    avatarPicker.addEventListener("click", (e) => {
+      const btn = e.target.closest(".avatar-opt");
+      if (!btn) return;
+      selectedAvatar = btn.dataset.avatar;
+      avatarPicker.querySelectorAll(".avatar-opt").forEach((b) => {
+        b.classList.toggle("selected", b === btn);
+      });
+    });
+
+    saveProfileBtn.addEventListener("click", () => {
+      const cleanName = profileNameInput.value.trim();
+      if (cleanName) {
+        userProfile.name = cleanName;
+      }
+      userProfile.avatar = selectedAvatar;
+      saveProfile();
+      profileForm.classList.add("hidden");
+    });
+
+    function setCleanFullscreen(enable) {
+      isFullscreenClean = enable;
+      hud.classList.toggle("hidden", enable);
+      fullscreenBtn.textContent = enable
+        ? "↩️ Show HUD / Exit Full Screen"
+        : "🖥️ Full Screen (Sab Hide Karein)";
+      if (enable) {
+        setMenuOpen(false);
+        if (document.documentElement.requestFullscreen && !document.fullscreenElement) {
+          document.documentElement.requestFullscreen().catch(() => {});
+        }
+      } else {
+        if (document.exitFullscreen && document.fullscreenElement) {
+          document.exitFullscreen().catch(() => {});
+        }
+      }
+    }
+
+    fullscreenBtn.addEventListener("click", () => {
+      setCleanFullscreen(!isFullscreenClean);
+    });
+
+    document.addEventListener("fullscreenchange", () => {
+      if (!document.fullscreenElement && isFullscreenClean) {
+        setCleanFullscreen(false);
+      }
+    });
+
+    function updateBestUI() {
+      bestPill.textContent = `Best: ${bestScore}`;
+      startBest.textContent = bestScore;
+      finalBestEl.textContent = bestScore;
+      menuBestScore.textContent = bestScore;
+    }
+
+    updateProfileUI();
+
+    // =========================================================================
+    // THEME TOGGLE (Raat / Din)
+    // =========================================================================
+    themeToggle.addEventListener("click", (e) => {
+      e.stopPropagation();
+      isNight = !isNight;
+      themeToggle.textContent = isNight ? "🌙 Raat" : "☀️ Din";
+      themeToggle.style.color = isNight ? "#fde047" : "#fb923c";
+    });
+
+    // =========================================================================
+    // MOSQUITO SPAWNING & MOVEMENT
+    // =========================================================================
+    function spawnMosquito() {
+      const fromLeft = Math.random() < 0.5;
+      const startX = fromLeft ? -20 : width + 20;
+      const startY = 70 + Math.random() * (scene.bedY - 90);
+
+      // Target hover zone above the bed
+      const targetX = scene.bedX + Math.random() * scene.bedW;
+      const targetY = Math.max(85, scene.bedY - 40 - Math.random() * (height * 0.34));
+
+      const speed = Math.min(
+        MAX_MOSQUITO_SPEED,
+        BASE_MOSQUITO_SPEED + score * SPEED_GAIN_PER_SCORE + Math.random() * 25
+      );
+
+      mosquitoes.push({
+        x: startX,
+        y: startY,
+        vx: 0,
+        vy: 0,
+        targetX,
+        targetY,
+        speed,
+        phase: Math.random() * Math.PI * 2,
+        wobbleFreq: 3.5 + Math.random() * 3.0,
+        wingPhase: Math.random() * Math.PI * 2,
+        retargetTimer: 1.0 + Math.random() * 1.8,
+        swooping: Math.random() < 0.35
+      });
+    }
+
+    function updateMosquitoes(dt) {
+      let nearCount = 0;
+      let minDist = Infinity;
+
+      for (const m of mosquitoes) {
+        m.phase += dt * m.wobbleFreq;
+        m.wingPhase += dt * 42;
+        m.retargetTimer -= dt;
+
+        if (m.retargetTimer <= 0) {
+          // Beech-beech mein insaan ke paas swoop karein, warna bed ke upar ghoomein
+          m.swooping = Math.random() < 0.45;
+          if (m.swooping) {
+            const angle = Math.random() * Math.PI * 2;
+            const r = Math.random() * (scene.proxRadius * 0.72);
+            m.targetX = scene.sleeperX + Math.cos(angle) * r;
+            m.targetY = scene.sleeperY - 12 + Math.sin(angle) * r * 0.7;
+            m.retargetTimer = 1.4 + Math.random() * 1.4;
+          } else {
+            m.targetX = Math.max(30, Math.min(width - 30, scene.bedX + Math.random() * scene.bedW));
+            m.targetY = Math.max(85, scene.bedY - 45 - Math.random() * Math.min(260, height * 0.42));
+            m.retargetTimer = 1.2 + Math.random() * 2.0;
+          }
+        }
+
+        const dx = m.targetX - m.x;
+        const dy = m.targetY - m.y;
+        const distToTarget = Math.hypot(dx, dy) || 1;
+
+        // Smooth steering + organic curve wobble
+        const desiredVx = (dx / distToTarget) * m.speed + Math.cos(m.phase) * 42;
+        const desiredVy = (dy / distToTarget) * m.speed + Math.sin(m.phase * 1.3) * 34;
+
+        const steer = Math.min(1, dt * 3.4);
+        m.vx += (desiredVx - m.vx) * steer;
+        m.vy += (desiredVy - m.vy) * steer;
+
+        m.x += m.vx * dt;
+        m.y += m.vy * dt;
+
+        // Keep inside playable upper/bed area
+        m.x = Math.max(18, Math.min(width - 18, m.x));
+        m.y = Math.max(64, Math.min(scene.bedY + 12, m.y));
+
+        const dSleeper = Math.hypot(m.x - scene.sleeperX, m.y - scene.sleeperY);
+        if (dSleeper < minDist) minDist = dSleeper;
+        if (dSleeper <= scene.proxRadius) {
+          nearCount++;
+        }
+      }
+
+      // Dynamic buzzing volume based on closest mosquito
+      if (mosquitoes.length === 0) {
+        buzzAudio.volume = 0.05;
+      } else {
+        const maxRange = Math.max(width, height) * 0.65;
+        const closeness = Math.max(0, 1 - minDist / maxRange);
+        buzzAudio.volume = Math.min(0.95, 0.08 + closeness * 0.85);
+      }
+
+      // Trigger Amitabh dialogue if any mosquito is inside proximity radius & cooldown ready
+      if (nearCount > 0 && dialogueCooldown <= 0) {
+        dialogueCooldown = DIALOGUE_COOLDOWN_SEC;
+        dialogueAudio.currentTime = 0;
+        dialogueAudio.play().catch(() => {});
+      }
+
+      // Update danger HUD pill
+      dangerPill.textContent = `Paas: ${nearCount}/${MAX_NEAR_MOSQUITOES}`;
+      if (nearCount >= MAX_NEAR_MOSQUITOES) {
+        dangerPill.classList.add("danger");
+      } else {
+        dangerPill.classList.remove("danger");
+      }
+
+      // Game Over if more than 5 mosquitoes (> 5) are near sleeper at once
+      if (nearCount > MAX_NEAR_MOSQUITOES) {
+        endGame("5 se zyada macchar ek saath insaan ke paas aa gaye!");
+      }
+    }
+
+    // =========================================================================
+    // GUN LOCK-ON & SHOOTING MECHANIC
+    // =========================================================================
+    function normalizeAngle(a) {
+      while (a > Math.PI) a -= Math.PI * 2;
+      while (a < -Math.PI) a += Math.PI * 2;
+      return a;
+    }
+
+    function findNearestMosquito() {
+      let best = null;
+      let bestDist = Infinity;
+      for (const m of mosquitoes) {
+        const d = Math.hypot(m.x - scene.gunX, m.y - scene.gunY);
+        if (d < bestDist) {
+          bestDist = d;
+          best = m;
+        }
+      }
+      return best;
+    }
+
+    function updateGunAim(dt) {
+      lockedMosquito = findNearestMosquito();
+      if (lockedMosquito) {
+        const targetAngle = Math.atan2(
+          lockedMosquito.y - scene.gunY,
+          lockedMosquito.x - scene.gunX
+        );
+        const diff = normalizeAngle(targetAngle - gunAngle);
+        const maxStep = GUN_TURN_SPEED * dt;
+        if (Math.abs(diff) <= maxStep) {
+          gunAngle = targetAngle;
+        } else {
+          gunAngle += Math.sign(diff) * maxStep;
+        }
+      }
+    }
+
+    function spawnSplat(x, y) {
+      for (let i = 0; i < 12; i++) {
+        const ang = (Math.PI * 2 * i) / 12 + Math.random() * 0.4;
+        const spd = 45 + Math.random() * 110;
+        particles.push({
+          x,
+          y,
+          vx: Math.cos(ang) * spd,
+          vy: Math.sin(ang) * spd,
+          life: 0.35 + Math.random() * 0.25,
+          maxLife: 0.6,
+          r: 2 + Math.random() * 2.5,
+          color: i % 2 === 0 ? "#ef4444" : "#fde047"
+        });
+      }
+    }
+
+    function fireRay() {
+      if (gameState !== "playing" || fireCooldown > 0) return;
+      fireCooldown = FIRE_COOLDOWN_SEC;
+
+      let hitTarget = null;
+      let hitDist = Infinity;
+
+      // Check if any mosquito falls within RAY_RANGE and RAY_CONE_RAD of gunAngle
+      for (let i = 0; i < mosquitoes.length; i++) {
+        const m = mosquitoes[i];
+        const dx = m.x - scene.gunX;
+        const dy = m.y - scene.gunY;
+        const dist = Math.hypot(dx, dy);
+        if (dist <= RAY_RANGE) {
+          const ang = Math.atan2(dy, dx);
+          const diff = Math.abs(normalizeAngle(ang - gunAngle));
+          if (diff <= RAY_CONE_RAD && dist < hitDist) {
+            hitDist = dist;
+            hitTarget = { index: i, mosquito: m };
+          }
+        }
+      }
+
+      if (hitTarget) {
+        const m = hitTarget.mosquito;
+        mosquitoes.splice(hitTarget.index, 1);
+
+        // Falling dead mosquito animation
+        fallingMosquitoes.push({
+          x: m.x,
+          y: m.y,
+          vy: 40,
+          rot: 0,
+          alpha: 1
+        });
+        spawnSplat(m.x, m.y);
+
+        score++;
+        userProfile.totalKills++;
+        scorePill.textContent = `Macchar maare: ${score}`;
+        if (score > bestScore) {
+          bestScore = score;
+        }
+        saveProfile();
+
+        activeRay = {
+          x1: scene.gunX,
+          y1: scene.gunY,
+          x2: m.x,
+          y2: m.y,
+          timer: RAY_VISIBLE_SEC,
+          hit: true
+        };
+        playLaserSfx(true);
+      } else {
+        // Miss: ray shoots along current gunAngle up to RAY_RANGE
+        activeRay = {
+          x1: scene.gunX,
+          y1: scene.gunY,
+          x2: scene.gunX + Math.cos(gunAngle) * RAY_RANGE,
+          y2: scene.gunY + Math.sin(gunAngle) * RAY_RANGE,
+          timer: RAY_VISIBLE_SEC,
+          hit: false
+        };
+        playLaserSfx(false);
+      }
+    }
+
+    // Pointer input (touch + mouse unified)
+    canvas.addEventListener("pointerdown", (e) => {
+      if (!viewMenu.classList.contains("hidden")) {
+        setMenuOpen(false);
+        return;
+      }
+      if (gameState !== "playing") return;
+      e.preventDefault();
+      unlockAudio();
+      fireRay();
+    });
+
+    // =========================================================================
+    // GAME LIFECYCLE
+    // =========================================================================
+    function startGame() {
+      unlockAudio();
+      score = 0;
+      timeLeft = GAME_DURATION_SEC;
+      spawnTimer = 0.4;
+      fireCooldown = 0;
+      dialogueCooldown = 0;
+      mosquitoes = [];
+      fallingMosquitoes = [];
+      particles = [];
+      zzzList = [];
+      activeRay = null;
+      lockedMosquito = null;
+
+      scorePill.textContent = "Macchar maare: 0";
+      timerPill.textContent = `${GAME_DURATION_SEC}s`;
+      dangerPill.textContent = `Paas: 0/${MAX_NEAR_MOSQUITOES}`;
+      dangerPill.classList.remove("danger");
+
+      startScreen.classList.add("hidden");
+      gameOverScreen.classList.add("hidden");
+      gameState = "playing";
+
+      // Spawn 2 initial mosquitoes right away
+      spawnMosquito();
+      spawnMosquito();
+
+      buzzAudio.currentTime = 0;
+      buzzAudio.play().catch(() => {});
+    }
+
+    function endGame(reason) {
+      if (gameState === "gameover") return;
+      gameState = "gameover";
+      buzzAudio.pause();
+      dialogueAudio.pause();
+
+      if (score > bestScore) {
+        bestScore = score;
+      }
+      userProfile.gamesPlayed++;
+      saveProfile();
+
+      finalScoreEl.textContent = score;
+      gameOverReasonEl.textContent = reason;
+      gameOverScreen.classList.remove("hidden");
+    }
+
+    startBtn.addEventListener("click", startGame);
+    restartBtn.addEventListener("click", startGame);
+
+    // =========================================================================
+    // UPDATE & RENDER LOOP
+    // =========================================================================
+    let lastTime = performance.now();
+
+    function update(dt) {
+      dizzyAngle += dt * 3.0;
+
+      // Floating "Zzz" animation
+      zzzTimer -= dt;
+      if (zzzTimer <= 0) {
+        zzzTimer = 0.95;
+        zzzList.push({
+          x: scene.sleeperX + 12,
+          y: scene.sleeperY - 26,
+          vy: -24,
+          life: 2.2,
+          maxLife: 2.2,
+          scale: 0.8 + Math.random() * 0.4
+        });
+      }
+      for (let i = zzzList.length - 1; i >= 0; i--) {
+        const z = zzzList[i];
+        z.y += z.vy * dt;
+        z.x += Math.sin(z.life * 3) * 10 * dt;
+        z.life -= dt;
+        if (z.life <= 0) zzzList.splice(i, 1);
+      }
+
+      if (gameState !== "playing") return;
+
+      // Timer countdown
+      timeLeft -= dt;
+      if (timeLeft <= 0) {
+        timeLeft = 0;
+        timerPill.textContent = "0s";
+        endGame("60 seconds poore ho gaye! Time khatam.");
+        return;
+      }
+      timerPill.textContent = `${Math.ceil(timeLeft)}s`;
+
+      // Cooldowns
+      if (fireCooldown > 0) fireCooldown = Math.max(0, fireCooldown - dt);
+      if (dialogueCooldown > 0) dialogueCooldown = Math.max(0, dialogueCooldown - dt);
+
+      // Spawner (difficulty scales with score)
+      spawnTimer -= dt;
+      if (spawnTimer <= 0) {
+        spawnMosquito();
+        const nextInterval = Math.max(
+          MIN_SPAWN_INTERVAL,
+          BASE_SPAWN_INTERVAL - score * SPAWN_ACCEL_PER_SCORE
+        );
+        spawnTimer = nextInterval * (0.85 + Math.random() * 0.3);
+      }
+
+      updateMosquitoes(dt);
+      if (gameState !== "playing") return;
+
+      updateGunAim(dt);
+
+      if (activeRay) {
+        activeRay.timer -= dt;
+        if (activeRay.timer <= 0) activeRay = null;
+      }
+
+      // Update falling dead mosquitoes
+      for (let i = fallingMosquitoes.length - 1; i >= 0; i--) {
+        const fm = fallingMosquitoes[i];
+        fm.vy += 420 * dt;
+        fm.y += fm.vy * dt;
+        fm.rot += 8 * dt;
+        fm.alpha -= 1.5 * dt;
+        if (fm.alpha <= 0 || fm.y > height) {
+          fallingMosquitoes.splice(i, 1);
+        }
+      }
+
+      // Update splat particles
+      for (let i = particles.length - 1; i >= 0; i--) {
+        const p = particles[i];
+        p.x += p.vx * dt;
+        p.y += p.vy * dt;
+        p.life -= dt;
+        if (p.life <= 0) particles.splice(i, 1);
+      }
+    }
+
+    // -------------------------------------------------------------------------
+    // DRAWING HELPERS
+    // -------------------------------------------------------------------------
+    function drawBedroom() {
+      // Wall gradient
+      const wallGrad = ctx.createLinearGradient(0, 0, 0, height);
+      if (isNight) {
+        wallGrad.addColorStop(0, "#090f24");
+        wallGrad.addColorStop(1, "#162044");
+      } else {
+        wallGrad.addColorStop(0, "#bae6fd");
+        wallGrad.addColorStop(1, "#fef3c7");
+      }
+      ctx.fillStyle = wallGrad;
+      ctx.fillRect(0, 0, width, height);
+
+      // Floor
+      const floorY = scene.bedY + scene.bedH * 0.55;
+      ctx.fillStyle = isNight ? "#111827" : "#d6b48c";
+      ctx.fillRect(0, floorY, width, height - floorY);
+
+      // Window
+      const { winX, winY, winW, winH } = scene;
+      ctx.save();
+      ctx.fillStyle = isNight ? "#0f172a" : "#7dd3fc";
+      ctx.fillRect(winX, winY, winW, winH);
+
+      // Sky details inside window
+      if (isNight) {
+        // Stars
+        for (const s of stars) {
+          const sx = winX + 6 + s.rx * (winW - 12);
+          const sy = winY + 6 + s.ry * (winH - 12);
+          ctx.fillStyle = "rgba(255,255,255,0.75)";
+          ctx.beginPath();
+          ctx.arc(sx, sy, s.r, 0, Math.PI * 2);
+          ctx.fill();
+        }
+        // Moon
+        ctx.fillStyle = "#fef08a";
+        ctx.beginPath();
+        ctx.arc(winX + winW * 0.72, winY + winH * 0.28, winW * 0.14, 0, Math.PI * 2);
+        ctx.fill();
+      } else {
+        // Sun
+        ctx.fillStyle = "#fde047";
+        ctx.beginPath();
+        ctx.arc(winX + winW * 0.72, winY + winH * 0.28, winW * 0.16, 0, Math.PI * 2);
+        ctx.fill();
+      }
+
+      // Window frame & panes
+      ctx.strokeStyle = isNight ? "#334155" : "#92400e";
+      ctx.lineWidth = 6;
+      ctx.strokeRect(winX, winY, winW, winH);
+      ctx.lineWidth = 3;
+      ctx.beginPath();
+      ctx.moveTo(winX + winW / 2, winY);
+      ctx.lineTo(winX + winW / 2, winY + winH);
+      ctx.moveTo(winX, winY + winH / 2);
+      ctx.lineTo(winX + winW, winY + winH / 2);
+      ctx.stroke();
+      ctx.restore();
+
+      // Light beam from window (Moonlight or Sunlight)
+      ctx.save();
+      const beamGrad = ctx.createLinearGradient(winX, winY, scene.bedX, scene.bedY + 40);
+      if (isNight) {
+        beamGrad.addColorStop(0, "rgba(186, 230, 253, 0.14)");
+        beamGrad.addColorStop(1, "rgba(186, 230, 253, 0.0)");
+      } else {
+        beamGrad.addColorStop(0, "rgba(254, 240, 138, 0.34)");
+        beamGrad.addColorStop(1, "rgba(254, 240, 138, 0.0)");
+      }
+      ctx.fillStyle = beamGrad;
+      ctx.beginPath();
+      ctx.moveTo(winX, winY + winH);
+      ctx.lineTo(winX + winW, winY + winH);
+      ctx.lineTo(scene.bedX + scene.bedW * 0.85, floorY + 20);
+      ctx.lineTo(scene.bedX - 40, floorY + 20);
+      ctx.closePath();
+      ctx.fill();
+      ctx.restore();
+    }
+
+    function drawBedAndSleeper() {
+      const { bedX, bedY, bedW, bedH } = scene;
+
+      // Subtle proximity circle around sleeper
+      ctx.save();
+      ctx.strokeStyle = isNight ? "rgba(248, 113, 113, 0.16)" : "rgba(220, 38, 38, 0.18)";
+      ctx.setLineDash([6, 6]);
+      ctx.lineWidth = 1.5;
+      ctx.beginPath();
+      ctx.arc(scene.sleeperX, scene.sleeperY, scene.proxRadius, 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.restore();
+
+      // Bed frame & headboard
+      ctx.fillStyle = "#5c3a21";
+      ctx.fillRect(bedX - 10, bedY - 42, 16, bedH * 0.72 + 42); // Headboard
+      ctx.fillRect(bedX + bedW - 6, bedY - 14, 14, bedH * 0.72 + 14); // Footboard
+      ctx.fillRect(bedX, bedY + 24, bedW, bedH * 0.38); // Base
+
+      // Mattress
+      ctx.fillStyle = "#f1f5f9";
+      ctx.beginPath();
+      ctx.roundRect(bedX + 4, bedY + 2, bedW - 8, 28, 8);
+      ctx.fill();
+
+      // Pillow
+      ctx.fillStyle = "#ffffff";
+      ctx.beginPath();
+      ctx.ellipse(bedX + bedW * 0.2, bedY - 2, 34, 13, -0.08, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Sleeper head
+      ctx.fillStyle = "#f1c27d";
+      ctx.beginPath();
+      ctx.arc(scene.sleeperX, scene.sleeperY - 4, 18, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Hair
+      ctx.fillStyle = "#1e293b";
+      ctx.beginPath();
+      ctx.arc(scene.sleeperX - 4, scene.sleeperY - 10, 16, Math.PI * 0.9, Math.PI * 1.95);
+      ctx.fill();
+
+      // Closed sleeping eyes
+      ctx.strokeStyle = "#334155";
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.arc(scene.sleeperX + 4, scene.sleeperY - 3, 4, 0.15, Math.PI - 0.15);
+      ctx.stroke();
+
+      // Blanket over body
+      const blanketGrad = ctx.createLinearGradient(bedX, bedY, bedX + bedW, bedY);
+      blanketGrad.addColorStop(0, "#3b82f6");
+      blanketGrad.addColorStop(1, "#1d4ed8");
+      ctx.fillStyle = blanketGrad;
+      ctx.beginPath();
+      ctx.roundRect(scene.sleeperX + 16, bedY - 10, bedW * 0.54, 34, 12);
+      ctx.fill();
+
+      // Dizzy circles above sleeper's head
+      ctx.save();
+      ctx.strokeStyle = isNight ? "rgba(253, 224, 71, 0.75)" : "rgba(234, 88, 12, 0.8)";
+      ctx.lineWidth = 1.8;
+      for (let i = 0; i < 2; i++) {
+        const ox = scene.sleeperX + Math.cos(dizzyAngle + i * Math.PI) * 16;
+        const oy = scene.sleeperY - 30 + Math.sin(dizzyAngle + i * Math.PI) * 5;
+        ctx.beginPath();
+        ctx.arc(ox, oy, 4, 0, Math.PI * 2);
+        ctx.stroke();
+      }
+      ctx.restore();
+
+      // Floating "Zzz"
+      ctx.save();
+      ctx.font = "bold 16px sans-serif";
+      for (const z of zzzList) {
+        const alpha = Math.max(0, z.life / z.maxLife);
+        ctx.fillStyle = isNight
+          ? `rgba(186, 230, 253, ${alpha})`
+          : `rgba(30, 41, 59, ${alpha})`;
+        ctx.save();
+        ctx.translate(z.x, z.y);
+        ctx.scale(z.scale, z.scale);
+        ctx.fillText("Zzz", 0, 0);
+        ctx.restore();
+      }
+      ctx.restore();
+    }
+
+    function drawGun() {
+      ctx.save();
+      ctx.translate(scene.gunX, scene.gunY);
+
+      // Base mount
+      ctx.fillStyle = "#334155";
+      ctx.beginPath();
+      ctx.arc(0, 6, 12, Math.PI, 0);
+      ctx.fill();
+
+      // Rotating barrel
+      ctx.rotate(gunAngle);
+      ctx.fillStyle = "#0f172a";
+      ctx.strokeStyle = "#38bdf8";
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.roundRect(-4, -6, 28, 12, 4);
+      ctx.fill();
+      ctx.stroke();
+
+      // Glowing nozzle tip
+      ctx.fillStyle = fireCooldown > 0 ? "#f59e0b" : "#4ade80";
+      ctx.beginPath();
+      ctx.arc(24, 0, 3.5, 0, Math.PI * 2);
+      ctx.fill();
+
+      ctx.restore();
+    }
+
+    function drawMosquito(m) {
+      ctx.save();
+      ctx.translate(m.x, m.y);
+
+      const flap = Math.sin(m.wingPhase) * 0.55;
+
+      // Thin translucent wings
+      ctx.fillStyle = isNight ? "rgba(226, 232, 240, 0.55)" : "rgba(100, 116, 139, 0.5)";
+      ctx.save();
+      ctx.rotate(-0.5 + flap);
+      ctx.beginPath();
+      ctx.ellipse(-3, -6, 9, 3.2, -0.3, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.restore();
+
+      ctx.save();
+      ctx.rotate(0.5 - flap);
+      ctx.beginPath();
+      ctx.ellipse(3, -6, 9, 3.2, 0.3, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.restore();
+
+      // Body (small & black)
+      ctx.fillStyle = "#09090b";
+      ctx.beginPath();
+      ctx.ellipse(0, 0, 6, 3, 0, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Head & proboscis
+      ctx.beginPath();
+      ctx.arc(6, -1, 2.5, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.strokeStyle = "#18181b";
+      ctx.lineWidth = 1.2;
+      ctx.beginPath();
+      ctx.moveTo(8, -1);
+      ctx.lineTo(14, 2);
+      ctx.stroke();
+
+      // Thin legs
+      ctx.beginPath();
+      ctx.moveTo(-2, 2);
+      ctx.lineTo(-5, 8);
+      ctx.moveTo(1, 2);
+      ctx.lineTo(1, 9);
+      ctx.moveTo(4, 2);
+      ctx.lineTo(7, 8);
+      ctx.stroke();
+
+      ctx.restore();
+    }
+
+    function drawLockOnCrosshair(m) {
+      const dist = Math.hypot(m.x - scene.gunX, m.y - scene.gunY);
+      const ang = Math.atan2(m.y - scene.gunY, m.x - scene.gunX);
+      const inCone = dist <= RAY_RANGE && Math.abs(normalizeAngle(ang - gunAngle)) <= RAY_CONE_RAD;
+
+      ctx.save();
+      ctx.translate(m.x, m.y);
+      ctx.strokeStyle = inCone ? "#4ade80" : "#facc15";
+      ctx.lineWidth = 1.8;
+
+      const r = 16 + Math.sin(performance.now() * 0.01) * 2;
+      ctx.beginPath();
+      ctx.arc(0, 0, r, 0, Math.PI * 2);
+      ctx.stroke();
+
+      // Crosshair ticks
+      ctx.beginPath();
+      ctx.moveTo(-r - 4, 0); ctx.lineTo(-r + 4, 0);
+      ctx.moveTo(r - 4, 0); ctx.lineTo(r + 4, 0);
+      ctx.moveTo(0, -r - 4); ctx.lineTo(0, -r + 4);
+      ctx.moveTo(0, r - 4); ctx.lineTo(0, r + 4);
+      ctx.stroke();
+      ctx.restore();
+    }
+
+    function drawLaserRay() {
+      if (!activeRay) return;
+      const alpha = Math.max(0, activeRay.timer / RAY_VISIBLE_SEC);
+
+      ctx.save();
+      ctx.lineCap = "round";
+
+      // Outer glow
+      ctx.strokeStyle = activeRay.hit
+        ? `rgba(74, 222, 128, ${alpha * 0.55})`
+        : `rgba(248, 113, 113, ${alpha * 0.45})`;
+      ctx.lineWidth = 10;
+      ctx.beginPath();
+      ctx.moveTo(activeRay.x1, activeRay.y1);
+      ctx.lineTo(activeRay.x2, activeRay.y2);
+      ctx.stroke();
+
+      // Inner bright core
+      ctx.strokeStyle = `rgba(255, 255, 255, ${alpha})`;
+      ctx.lineWidth = 3;
+      ctx.beginPath();
+      ctx.moveTo(activeRay.x1, activeRay.y1);
+      ctx.lineTo(activeRay.x2, activeRay.y2);
+      ctx.stroke();
+
+      ctx.restore();
+    }
+
+    function render() {
+      drawBedroom();
+      drawBedAndSleeper();
+
+      // Aiming guide faint line when playing
+      if (gameState === "playing") {
+        ctx.save();
+        ctx.strokeStyle = "rgba(56, 189, 248, 0.16)";
+        ctx.setLineDash([5, 7]);
+        ctx.lineWidth = 1.5;
+        ctx.beginPath();
+        ctx.moveTo(scene.gunX, scene.gunY);
+        ctx.lineTo(
+          scene.gunX + Math.cos(gunAngle) * RAY_RANGE,
+          scene.gunY + Math.sin(gunAngle) * RAY_RANGE
+        );
+        ctx.stroke();
+        ctx.restore();
+      }
+
+      drawGun();
+
+      // Mosquitoes
+      for (const m of mosquitoes) {
+        drawMosquito(m);
+      }
+
+      // Lock-on crosshair on nearest tracked mosquito
+      if (gameState === "playing" && lockedMosquito) {
+        drawLockOnCrosshair(lockedMosquito);
+      }
+
+      // Falling dead mosquitoes
+      for (const fm of fallingMosquitoes) {
+        ctx.save();
+        ctx.globalAlpha = Math.max(0, fm.alpha);
+        ctx.translate(fm.x, fm.y);
+        ctx.rotate(fm.rot);
+        ctx.fillStyle = "#18181b";
+        ctx.beginPath();
+        ctx.ellipse(0, 0, 6, 3, 0, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.restore();
+      }
+
+      // Splat particles
+      for (const p of particles) {
+        ctx.save();
+        ctx.globalAlpha = Math.max(0, p.life / p.maxLife);
+        ctx.fillStyle = p.color;
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.restore();
+      }
+
+      drawLaserRay();
+
+      // Night vignette overlay
+      if (isNight) {
+        const vig = ctx.createRadialGradient(
+          width * 0.5, height * 0.5, Math.min(width, height) * 0.25,
+          width * 0.5, height * 0.5, Math.max(width, height) * 0.75
+        );
+        vig.addColorStop(0, "rgba(0, 0, 0, 0)");
+        vig.addColorStop(1, "rgba(2, 6, 23, 0.55)");
+        ctx.fillStyle = vig;
+        ctx.fillRect(0, 0, width, height);
+      }
+    }
+
+    function loop(now) {
+      const dt = Math.min(0.05, (now - lastTime) / 1000);
+      lastTime = now;
+      update(dt);
+      render();
+      requestAnimationFrame(loop);
+    }
+
+    // Initialize
+    resizeCanvas();
+    updateBestUI();
+    requestAnimationFrame(loop);
+  </script>
+</body>
+</html>
