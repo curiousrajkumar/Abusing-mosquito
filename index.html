@@ -428,7 +428,7 @@
         <div class="menu-avatar" id="menuAvatar">😎</div>
         <div class="menu-user-info">
           <div class="menu-user-name" id="menuUserName">Guest Player</div>
-          <div class="menu-user-sub" id="menuUserSub">Profile localStorage mein save hai</div>
+          <div class="menu-user-sub" id="menuUserSub">Macchar Hunter Profile</div>
         </div>
       </div>
 
@@ -599,6 +599,8 @@
       bedH: 0,
       sleeperX: 0,
       sleeperY: 0,
+      handPivotX: 0,
+      handPivotY: 0,
       gunX: 0,
       gunY: 0,
       winX: 0,
@@ -608,6 +610,14 @@
       proxRadius: PROXIMITY_RADIUS
     };
 
+    const HAND_REACH = 46; // Arm + gun barrel reach from shoulder pivot
+
+    function updateGunNozzle() {
+      const reach = HAND_REACH - gunRecoil;
+      scene.gunX = scene.handPivotX + Math.cos(gunAngle) * reach;
+      scene.gunY = scene.handPivotY + Math.sin(gunAngle) * reach;
+    }
+
     function updateSceneAnchors() {
       const isPortrait = height > width;
       scene.bedW = Math.min(width * (isPortrait ? 0.82 : 0.56), 520);
@@ -616,12 +626,12 @@
       scene.bedY = height - scene.bedH - Math.max(24, height * 0.06);
 
       // Sleeping person's head/chest center
-      scene.sleeperX = scene.bedX + scene.bedW * 0.32;
-      scene.sleeperY = scene.bedY - 10;
+      scene.sleeperX = scene.bedX + scene.bedW * 0.28;
+      scene.sleeperY = scene.bedY - 12;
 
-      // Laser gun nozzle near the foot/side of the bed
-      scene.gunX = scene.bedX + scene.bedW * 0.84;
-      scene.gunY = scene.bedY - 12;
+      // User's shoulder/hand pivot emerging from blanket
+      scene.handPivotX = scene.sleeperX + 34;
+      scene.handPivotY = scene.sleeperY + 2;
 
       // Window position
       scene.winW = Math.min(width * 0.28, 170);
@@ -631,6 +641,7 @@
 
       // Scale proximity radius slightly on very small screens
       scene.proxRadius = Math.min(PROXIMITY_RADIUS, Math.max(75, Math.min(width, height) * 0.22));
+      updateGunNozzle();
     }
 
     window.addEventListener("resize", resizeCanvas);
@@ -689,6 +700,47 @@
       }
     }
 
+    // WebAudio se macchar kill hone par "Aaa!" pain sound effect
+    function playPainSfx() {
+      if (!audioCtx) return;
+      try {
+        const start = audioCtx.currentTime + 0.04;
+        const osc = audioCtx.createOscillator();
+        const f1 = audioCtx.createBiquadFilter();
+        const f2 = audioCtx.createBiquadFilter();
+        const gain = audioCtx.createGain();
+
+        const basePitch = 430 + Math.random() * 80;
+        osc.type = "sawtooth";
+        osc.frequency.setValueAtTime(basePitch, start);
+        osc.frequency.exponentialRampToValueAtTime(basePitch * 0.48, start + 0.26);
+
+        // Formant filters for "Aaa!" vowel sound
+        f1.type = "bandpass";
+        f1.frequency.setValueAtTime(750, start);
+        f1.Q.setValueAtTime(4.5, start);
+
+        f2.type = "bandpass";
+        f2.frequency.setValueAtTime(1250, start);
+        f2.Q.setValueAtTime(5.0, start);
+
+        gain.gain.setValueAtTime(0.001, start);
+        gain.gain.linearRampToValueAtTime(0.32, start + 0.03);
+        gain.gain.exponentialRampToValueAtTime(0.001, start + 0.28);
+
+        osc.connect(f1);
+        osc.connect(f2);
+        f1.connect(gain);
+        f2.connect(gain);
+        gain.connect(audioCtx.destination);
+
+        osc.start(start);
+        osc.stop(start + 0.29);
+      } catch (_) {
+        // Ignore WebAudio errors if blocked
+      }
+    }
+
     // =========================================================================
     // GAME STATE
     // =========================================================================
@@ -702,7 +754,9 @@
     let fireCooldown = 0;
     let dialogueCooldown = 0;
 
-    let gunAngle = -Math.PI * 0.75; // Initial upward-left aim toward bed
+    let gunAngle = -Math.PI * 0.35; // Initial upward-right aim from sleeper's hand
+    let gunRecoil = 0;
+    let sleeperAlert = false;
     let lockedMosquito = null;
     let activeRay = null; // { x1, y1, x2, y2, timer, hit }
 
@@ -767,7 +821,7 @@
       menuUserName.textContent = userProfile.name;
       menuUserSub.textContent = userProfile.name === "Guest Player"
         ? "Apna profile banayein!"
-        : "Saved in browser localStorage";
+        : "Macchar Hunter";
       menuBestScore.textContent = bestScore;
       menuGamesPlayed.textContent = userProfile.gamesPlayed;
       menuTotalKills.textContent = userProfile.totalKills;
@@ -973,7 +1027,8 @@
         dialogueAudio.play().catch(() => {});
       }
 
-      // Update danger HUD pill
+      // Update danger HUD pill & sleeper alert state
+      sleeperAlert = nearCount > 0;
       dangerPill.textContent = `Paas: ${nearCount}/${MAX_NEAR_MOSQUITOES}`;
       if (nearCount >= MAX_NEAR_MOSQUITOES) {
         dangerPill.classList.add("danger");
@@ -1013,8 +1068,8 @@
       lockedMosquito = findNearestMosquito();
       if (lockedMosquito) {
         const targetAngle = Math.atan2(
-          lockedMosquito.y - scene.gunY,
-          lockedMosquito.x - scene.gunX
+          lockedMosquito.y - scene.handPivotY,
+          lockedMosquito.x - scene.handPivotX
         );
         const diff = normalizeAngle(targetAngle - gunAngle);
         const maxStep = GUN_TURN_SPEED * dt;
@@ -1024,6 +1079,10 @@
           gunAngle += Math.sign(diff) * maxStep;
         }
       }
+      if (gunRecoil > 0) {
+        gunRecoil = Math.max(0, gunRecoil - 42 * dt);
+      }
+      updateGunNozzle();
     }
 
     function spawnSplat(x, y) {
@@ -1046,6 +1105,8 @@
     function fireRay() {
       if (gameState !== "playing" || fireCooldown > 0) return;
       fireCooldown = FIRE_COOLDOWN_SEC;
+      gunRecoil = 8;
+      updateGunNozzle();
 
       let hitTarget = null;
       let hitDist = Infinity;
@@ -1097,6 +1158,7 @@
           hit: true
         };
         playLaserSfx(true);
+        playPainSfx();
       } else {
         // Miss: ray shoots along current gunAngle up to RAY_RANGE
         activeRay = {
@@ -1272,7 +1334,7 @@
       // Wall gradient
       const wallGrad = ctx.createLinearGradient(0, 0, 0, height);
       if (isNight) {
-        wallGrad.addColorStop(0, "#090f24");
+        wallGrad.addColorStop(0, "#070b1a");
         wallGrad.addColorStop(1, "#162044");
       } else {
         wallGrad.addColorStop(0, "#bae6fd");
@@ -1281,10 +1343,100 @@
       ctx.fillStyle = wallGrad;
       ctx.fillRect(0, 0, width, height);
 
-      // Floor
+      // Subtle wallpaper stripes
       const floorY = scene.bedY + scene.bedH * 0.55;
+      ctx.save();
+      ctx.fillStyle = isNight ? "rgba(255, 255, 255, 0.02)" : "rgba(255, 255, 255, 0.18)";
+      for (let x = 0; x < width; x += 48) {
+        ctx.fillRect(x, 0, 22, floorY);
+      }
+      ctx.restore();
+
+      // Floor + wooden plank lines + baseboard
       ctx.fillStyle = isNight ? "#111827" : "#d6b48c";
       ctx.fillRect(0, floorY, width, height - floorY);
+
+      ctx.strokeStyle = isNight ? "rgba(255,255,255,0.05)" : "rgba(120, 53, 15, 0.14)";
+      ctx.lineWidth = 1.5;
+      for (let y = floorY + 18; y < height; y += 22) {
+        ctx.beginPath();
+        ctx.moveTo(0, y);
+        ctx.lineTo(width, y);
+        ctx.stroke();
+      }
+
+      // Baseboard trim
+      ctx.fillStyle = isNight ? "#1e293b" : "#92400e";
+      ctx.fillRect(0, floorY - 8, width, 10);
+
+      // Framed wall picture (left side)
+      if (scene.bedX > 55 || width > 420) {
+        const picX = Math.max(24, scene.bedX * 0.35);
+        const picY = Math.max(84, scene.winY + 10);
+        ctx.save();
+        ctx.fillStyle = isNight ? "#1e293b" : "#78350f";
+        ctx.beginPath();
+        ctx.roundRect(picX - 4, picY - 4, 56, 44, 4);
+        ctx.fill();
+        ctx.fillStyle = isNight ? "#0f172a" : "#e0f2fe";
+        ctx.fillRect(picX, picY, 48, 36);
+        // Little mountain art inside frame
+        ctx.fillStyle = isNight ? "#334155" : "#38bdf8";
+        ctx.beginPath();
+        ctx.moveTo(picX + 4, picY + 34);
+        ctx.lineTo(picX + 18, picY + 14);
+        ctx.lineTo(picX + 32, picY + 34);
+        ctx.closePath();
+        ctx.fill();
+        ctx.fillStyle = isNight ? "#475569" : "#0284c7";
+        ctx.beginPath();
+        ctx.moveTo(picX + 20, picY + 34);
+        ctx.lineTo(picX + 34, picY + 18);
+        ctx.lineTo(picX + 46, picY + 34);
+        ctx.closePath();
+        ctx.fill();
+        ctx.restore();
+      }
+
+      // Bedside table + warm lamp (when space on left)
+      if (scene.bedX > 66) {
+        const tableW = 46;
+        const tableH = 44;
+        const tableX = scene.bedX - tableW - 14;
+        const tableY = floorY - tableH;
+        ctx.fillStyle = isNight ? "#3b2314" : "#78350f";
+        ctx.beginPath();
+        ctx.roundRect(tableX, tableY, tableW, tableH, 4);
+        ctx.fill();
+        ctx.fillStyle = isNight ? "#26150b" : "#451a03";
+        ctx.fillRect(tableX + 6, tableY + 8, tableW - 12, 12);
+
+        // Lamp base & shade
+        const lampX = tableX + tableW / 2;
+        const lampY = tableY;
+        ctx.fillStyle = "#94a3b8";
+        ctx.fillRect(lampX - 2, lampY - 18, 4, 18);
+        ctx.fillRect(lampX - 8, lampY - 3, 16, 3);
+
+        if (isNight) {
+          const glow = ctx.createRadialGradient(lampX, lampY - 22, 4, lampX, lampY - 22, 75);
+          glow.addColorStop(0, "rgba(253, 224, 71, 0.36)");
+          glow.addColorStop(1, "rgba(253, 224, 71, 0)");
+          ctx.fillStyle = glow;
+          ctx.beginPath();
+          ctx.arc(lampX, lampY - 22, 75, 0, Math.PI * 2);
+          ctx.fill();
+        }
+
+        ctx.fillStyle = isNight ? "#fde047" : "#fef08a";
+        ctx.beginPath();
+        ctx.moveTo(lampX - 14, lampY - 16);
+        ctx.lineTo(lampX + 14, lampY - 16);
+        ctx.lineTo(lampX + 9, lampY - 32);
+        ctx.lineTo(lampX - 9, lampY - 32);
+        ctx.closePath();
+        ctx.fill();
+      }
 
       // Window
       const { winX, winY, winW, winH } = scene;
@@ -1294,22 +1446,28 @@
 
       // Sky details inside window
       if (isNight) {
-        // Stars
         for (const s of stars) {
           const sx = winX + 6 + s.rx * (winW - 12);
           const sy = winY + 6 + s.ry * (winH - 12);
-          ctx.fillStyle = "rgba(255,255,255,0.75)";
+          ctx.fillStyle = "rgba(255,255,255,0.8)";
           ctx.beginPath();
           ctx.arc(sx, sy, s.r, 0, Math.PI * 2);
           ctx.fill();
         }
-        // Moon
+        // Crescent-glow Moon
+        ctx.fillStyle = "rgba(254, 240, 138, 0.2)";
+        ctx.beginPath();
+        ctx.arc(winX + winW * 0.72, winY + winH * 0.28, winW * 0.21, 0, Math.PI * 2);
+        ctx.fill();
         ctx.fillStyle = "#fef08a";
         ctx.beginPath();
         ctx.arc(winX + winW * 0.72, winY + winH * 0.28, winW * 0.14, 0, Math.PI * 2);
         ctx.fill();
       } else {
-        // Sun
+        ctx.fillStyle = "rgba(253, 224, 71, 0.3)";
+        ctx.beginPath();
+        ctx.arc(winX + winW * 0.72, winY + winH * 0.28, winW * 0.22, 0, Math.PI * 2);
+        ctx.fill();
         ctx.fillStyle = "#fde047";
         ctx.beginPath();
         ctx.arc(winX + winW * 0.72, winY + winH * 0.28, winW * 0.16, 0, Math.PI * 2);
@@ -1327,6 +1485,16 @@
       ctx.moveTo(winX, winY + winH / 2);
       ctx.lineTo(winX + winW, winY + winH / 2);
       ctx.stroke();
+
+      // Side curtains
+      ctx.fillStyle = isNight ? "#312e81" : "#fb7185";
+      ctx.beginPath();
+      ctx.roundRect(winX - 10, winY - 4, 18, winH + 12, 4);
+      ctx.roundRect(winX + winW - 8, winY - 4, 18, winH + 12, 4);
+      ctx.fill();
+      // Curtain rod
+      ctx.fillStyle = isNight ? "#64748b" : "#78350f";
+      ctx.fillRect(winX - 16, winY - 6, winW + 32, 4);
       ctx.restore();
 
       // Light beam from window (Moonlight or Sunlight)
@@ -1352,10 +1520,13 @@
 
     function drawBedAndSleeper() {
       const { bedX, bedY, bedW, bedH } = scene;
+      const floorY = bedY + bedH * 0.55;
 
       // Subtle proximity circle around sleeper
       ctx.save();
-      ctx.strokeStyle = isNight ? "rgba(248, 113, 113, 0.16)" : "rgba(220, 38, 38, 0.18)";
+      ctx.strokeStyle = sleeperAlert
+        ? "rgba(248, 113, 113, 0.35)"
+        : (isNight ? "rgba(248, 113, 113, 0.14)" : "rgba(220, 38, 38, 0.16)");
       ctx.setLineDash([6, 6]);
       ctx.lineWidth = 1.5;
       ctx.beginPath();
@@ -1363,59 +1534,139 @@
       ctx.stroke();
       ctx.restore();
 
-      // Bed frame & headboard
-      ctx.fillStyle = "#5c3a21";
-      ctx.fillRect(bedX - 10, bedY - 42, 16, bedH * 0.72 + 42); // Headboard
-      ctx.fillRect(bedX + bedW - 6, bedY - 14, 14, bedH * 0.72 + 14); // Footboard
-      ctx.fillRect(bedX, bedY + 24, bedW, bedH * 0.38); // Base
+      // Under-bed shadow
+      ctx.fillStyle = "rgba(0, 0, 0, 0.28)";
+      ctx.beginPath();
+      ctx.ellipse(bedX + bedW / 2, floorY + 2, bedW * 0.52, 8, 0, 0, Math.PI * 2);
+      ctx.fill();
 
-      // Mattress
-      ctx.fillStyle = "#f1f5f9";
+      // Bed frame, headboard & footboard
+      ctx.fillStyle = "#5c3a21";
+      ctx.beginPath();
+      ctx.roundRect(bedX - 12, bedY - 46, 18, bedH * 0.72 + 46, 6); // Headboard
+      ctx.roundRect(bedX + bedW - 6, bedY - 16, 15, bedH * 0.72 + 16, 5); // Footboard
+      ctx.roundRect(bedX, bedY + 24, bedW, bedH * 0.34, 4); // Base
+      ctx.fill();
+
+      // Mattress with subtle shading
+      const matGrad = ctx.createLinearGradient(bedX, bedY, bedX, bedY + 30);
+      matGrad.addColorStop(0, "#ffffff");
+      matGrad.addColorStop(1, "#cbd5e1");
+      ctx.fillStyle = matGrad;
       ctx.beginPath();
       ctx.roundRect(bedX + 4, bedY + 2, bedW - 8, 28, 8);
       ctx.fill();
 
-      // Pillow
+      // Fluffy Pillow
+      ctx.fillStyle = "#e2e8f0";
+      ctx.beginPath();
+      ctx.ellipse(bedX + bedW * 0.17, bedY - 1, 36, 14, -0.1, 0, Math.PI * 2);
+      ctx.fill();
       ctx.fillStyle = "#ffffff";
       ctx.beginPath();
-      ctx.ellipse(bedX + bedW * 0.2, bedY - 2, 34, 13, -0.08, 0, Math.PI * 2);
+      ctx.ellipse(bedX + bedW * 0.17, bedY - 3, 33, 11, -0.1, 0, Math.PI * 2);
       ctx.fill();
 
       // Sleeper head
       ctx.fillStyle = "#f1c27d";
       ctx.beginPath();
-      ctx.arc(scene.sleeperX, scene.sleeperY - 4, 18, 0, Math.PI * 2);
+      ctx.arc(scene.sleeperX, scene.sleeperY - 4, 19, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Ear
+      ctx.fillStyle = "#e0ac69";
+      ctx.beginPath();
+      ctx.arc(scene.sleeperX - 14, scene.sleeperY - 2, 4.5, 0, Math.PI * 2);
       ctx.fill();
 
       // Hair
       ctx.fillStyle = "#1e293b";
       ctx.beginPath();
-      ctx.arc(scene.sleeperX - 4, scene.sleeperY - 10, 16, Math.PI * 0.9, Math.PI * 1.95);
+      ctx.arc(scene.sleeperX - 3, scene.sleeperY - 11, 17, Math.PI * 0.85, Math.PI * 1.98);
       ctx.fill();
 
-      // Closed sleeping eyes
-      ctx.strokeStyle = "#334155";
-      ctx.lineWidth = 2;
+      // Expressive Eye (peeks/opens when mosquito is near or just fired!)
+      const eyesOpen = sleeperAlert || fireCooldown > 0.15;
+      const eyeX = scene.sleeperX + 7;
+      const eyeY = scene.sleeperY - 5;
+      if (eyesOpen) {
+        // White sclera
+        ctx.fillStyle = "#ffffff";
+        ctx.beginPath();
+        ctx.ellipse(eyeX, eyeY, 5.2, 4.2, 0, 0, Math.PI * 2);
+        ctx.fill();
+        // Pupil tracking gunAngle
+        ctx.fillStyle = "#0f172a";
+        ctx.beginPath();
+        ctx.arc(
+          eyeX + Math.cos(gunAngle) * 1.8,
+          eyeY + Math.sin(gunAngle) * 1.6,
+          2.2,
+          0,
+          Math.PI * 2
+        );
+        ctx.fill();
+        // Eyebrow
+        ctx.strokeStyle = "#1e293b";
+        ctx.lineWidth = 1.6;
+        ctx.beginPath();
+        ctx.moveTo(eyeX - 4, eyeY - 6);
+        ctx.lineTo(eyeX + 4, eyeY - 7);
+        ctx.stroke();
+      } else {
+        // Closed sleeping eye
+        ctx.strokeStyle = "#334155";
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.arc(eyeX, eyeY + 1, 4.5, 0.15, Math.PI - 0.15);
+        ctx.stroke();
+      }
+
+      // Slight nose & mouth
+      ctx.strokeStyle = "#c68642";
+      ctx.lineWidth = 1.4;
       ctx.beginPath();
-      ctx.arc(scene.sleeperX + 4, scene.sleeperY - 3, 4, 0.15, Math.PI - 0.15);
+      ctx.moveTo(scene.sleeperX + 15, scene.sleeperY - 3);
+      ctx.lineTo(scene.sleeperX + 19, scene.sleeperY - 1);
       ctx.stroke();
 
-      // Blanket over body
+      // Shirt collar / shoulder emerging from blanket
+      ctx.fillStyle = "#38bdf8";
+      ctx.beginPath();
+      ctx.arc(scene.handPivotX - 8, scene.handPivotY + 2, 13, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Quilted Blanket over body
       const blanketGrad = ctx.createLinearGradient(bedX, bedY, bedX + bedW, bedY);
       blanketGrad.addColorStop(0, "#3b82f6");
       blanketGrad.addColorStop(1, "#1d4ed8");
       ctx.fillStyle = blanketGrad;
       ctx.beginPath();
-      ctx.roundRect(scene.sleeperX + 16, bedY - 10, bedW * 0.54, 34, 12);
+      ctx.roundRect(scene.sleeperX + 18, bedY - 10, bedW * 0.62, 34, 12);
       ctx.fill();
+
+      // Blanket fold & quilt stripes
+      ctx.fillStyle = "#93c5fd";
+      ctx.beginPath();
+      ctx.roundRect(scene.sleeperX + 16, bedY - 11, 16, 35, 6);
+      ctx.fill();
+
+      ctx.strokeStyle = "rgba(255, 255, 255, 0.14)";
+      ctx.lineWidth = 1.5;
+      for (let bx = scene.sleeperX + 46; bx < scene.sleeperX + 18 + bedW * 0.6; bx += 28) {
+        ctx.beginPath();
+        ctx.moveTo(bx, bedY - 8);
+        ctx.lineTo(bx - 6, bedY + 22);
+        ctx.stroke();
+      }
 
       // Dizzy circles above sleeper's head
       ctx.save();
-      ctx.strokeStyle = isNight ? "rgba(253, 224, 71, 0.75)" : "rgba(234, 88, 12, 0.8)";
+      ctx.strokeStyle = isNight ? "rgba(253, 224, 71, 0.78)" : "rgba(234, 88, 12, 0.85)";
       ctx.lineWidth = 1.8;
       for (let i = 0; i < 2; i++) {
         const ox = scene.sleeperX + Math.cos(dizzyAngle + i * Math.PI) * 16;
-        const oy = scene.sleeperY - 30 + Math.sin(dizzyAngle + i * Math.PI) * 5;
+        const oy = scene.sleeperY - 32 + Math.sin(dizzyAngle + i * Math.PI) * 5;
         ctx.beginPath();
         ctx.arc(ox, oy, 4, 0, Math.PI * 2);
         ctx.stroke();
@@ -1441,28 +1692,46 @@
 
     function drawGun() {
       ctx.save();
-      ctx.translate(scene.gunX, scene.gunY);
+      ctx.translate(scene.handPivotX, scene.handPivotY);
+      ctx.rotate(gunAngle);
 
-      // Base mount
-      ctx.fillStyle = "#334155";
+      const recoilOffset = -gunRecoil;
+
+      // Sleeper's sleeve + forearm moving with aim
+      ctx.fillStyle = "#38bdf8";
       ctx.beginPath();
-      ctx.arc(0, 6, 12, Math.PI, 0);
+      ctx.roundRect(recoilOffset - 2, -6, 16, 12, 5);
       ctx.fill();
 
-      // Rotating barrel
-      ctx.rotate(gunAngle);
+      ctx.fillStyle = "#f1c27d";
+      ctx.beginPath();
+      ctx.roundRect(recoilOffset + 10, -4.5, 16, 9, 4);
+      ctx.fill();
+
+      // Laser pistol grip & body in user's hand
+      ctx.fillStyle = "#1e293b";
+      ctx.beginPath();
+      ctx.roundRect(recoilOffset + 20, -2, 8, 11, 2); // Grip
+      ctx.fill();
+
       ctx.fillStyle = "#0f172a";
       ctx.strokeStyle = "#38bdf8";
-      ctx.lineWidth = 2;
+      ctx.lineWidth = 1.8;
       ctx.beginPath();
-      ctx.roundRect(-4, -6, 28, 12, 4);
+      ctx.roundRect(recoilOffset + 18, -8, 28, 11, 4); // Barrel
       ctx.fill();
       ctx.stroke();
+
+      // Hand / fingers wrapped around grip
+      ctx.fillStyle = "#f1c27d";
+      ctx.beginPath();
+      ctx.arc(recoilOffset + 24, 2, 5.2, 0, Math.PI * 2);
+      ctx.fill();
 
       // Glowing nozzle tip
       ctx.fillStyle = fireCooldown > 0 ? "#f59e0b" : "#4ade80";
       ctx.beginPath();
-      ctx.arc(24, 0, 3.5, 0, Math.PI * 2);
+      ctx.arc(recoilOffset + HAND_REACH, -2.5, 3.5, 0, Math.PI * 2);
       ctx.fill();
 
       ctx.restore();
